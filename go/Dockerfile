@@ -1,11 +1,17 @@
-FROM golang:1.20 AS builder
+# Stage builder
+FROM golang:1.20-alpine AS builder
 
 WORKDIR /usr/src/app
 
-COPY go.mod go.sum ./
+COPY go.mod ./
 RUN go mod download && go mod verify
 
 COPY . .
-RUN go build -v -o /usr/local/bin/app ./...
+RUN go build -v
 
-CMD ["app"]
+# Stage setup
+FROM scratch
+
+COPY --from=builder /usr/src/app/hello /
+
+CMD ["/hello"]
