@@ -1,6 +1,20 @@
 version: '3'
 
 services:
+  db:
+    image: mysql:5.7
+    command: --innodb-use-native-aio=0
+    container_name: db
+    restart: always
+    tty: true
+    volumes:
+      - ./mysql:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=nodedb
+    networks:
+      - node-network
+
   app:
     build:
       context: node
@@ -8,6 +22,23 @@ services:
     container_name: app
     entrypoint: dockerize -wait tcp://db:3306 -timeout 20s docker-entrypoint.sh
     command: "node index.js"
+    tty: true
+    volumes:
+      - ./node:/usr/src/app
+    networks:
+      - node-network
+    depends_on:
+      - db
+
+  migration:
+    image: rafaelp777/node-app
+    container_name: migration
+    entrypoint: dockerize -wait tcp://db:3306 -timeout 20s docker-entrypoint.sh
+    command: [
+      "npm",
+      "run",
+      "migrate"
+    ]
     tty: true
     volumes:
       - ./node:/usr/src/app
@@ -28,20 +59,6 @@ services:
       - node-network
     depends_on:
       - app
-
-  db:
-    image: mysql:5.7
-    command: --innodb-use-native-aio=0
-    container_name: db
-    restart: always
-    tty: true
-    volumes:
-      - ./mysql:/var/lib/mysql
-    environment:
-      - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_DATABASE=nodedb
-    networks:
-      - node-network
 
 networks:
   node-network:
